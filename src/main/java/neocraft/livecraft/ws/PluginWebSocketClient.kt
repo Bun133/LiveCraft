@@ -60,9 +60,9 @@ class PluginWebSocketClient(private val server: Server, private val roomId: Int,
             "onGift" -> {
                 val gift = gifts.firstOrNull { it.giftId == params.giftId }
                 if (gift != null) {
-                    server.broadcastMessage("${ChatColor.AQUA}[配信ギフト] ${params.userName} から ${gift.name}（${gift.price}） を ${params.count}個 もらったよ")
+                    server.broadcastMessage("${ChatColor.LIGHT_PURPLE}${ChatColor.BOLD}[配信ギフト] ${params.userName} から ${gift.name}（${gift.price}） を ${params.count}個 もらったよ")
                 } else {
-                    server.broadcastMessage("${ChatColor.AQUA}[配信ギフト] ${params.userName} から ${params.giftId} を ${params.count}個 もらったよ")
+                    server.broadcastMessage("${ChatColor.LIGHT_PURPLE}${ChatColor.BOLD}[配信ギフト] ${params.userName} から ${params.giftId} を ${params.count}個 もらったよ")
                 }
             }
         }

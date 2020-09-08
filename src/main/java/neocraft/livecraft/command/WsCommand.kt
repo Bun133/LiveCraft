@@ -1,7 +1,7 @@
 package neocraft.livecraft.command
 
 import neocraft.livecraft.LiveCraft
-import neocraft.livecraft.api.MildomClient
+import neocraft.livecraft.api.MildomUseCase
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
@@ -11,7 +11,7 @@ class WsCommand(private val plugin: LiveCraft) : CommandExecutor {
         return when (args.getOrNull(0)) {
             "connect" -> {
                 val roomId = args.getOrNull(1)?.toIntOrNull() ?: return false
-                MildomClient(plugin).getGifts(roomId)
+                MildomUseCase(plugin).connect(roomId)
                 true
             }
             "close" -> {
