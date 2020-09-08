@@ -2,19 +2,25 @@ package neocraft.livecraft.ws
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import neocraft.livecraft.LiveCraft
 import neocraft.livecraft.api.Gift
 import neocraft.livecraft.ext.log
+import neocraft.livecraft.model.GiftItem
 import org.bukkit.ChatColor
-import org.bukkit.Server
+import org.bukkit.scheduler.BukkitRunnable
 import org.java_websocket.client.WebSocketClient
 import org.java_websocket.handshake.ServerHandshake
 import java.net.URI
 import java.text.SimpleDateFormat
 import java.util.*
 
-class PluginWebSocketClient(private val server: Server, private val roomId: Int, private val gifts: List<Gift>) : WebSocketClient(URI.create("wss://jp-room1.mildom.com/?roomId=$roomId")) {
+class PluginWebSocketClient(
+        private val plugin: LiveCraft,
+        private val roomId: Int,
+        private val gifts: List<Gift>
+) : WebSocketClient(URI.create("wss://jp-room1.mildom.com/?roomId=$roomId")) {
     override fun onOpen(handshakedata: ServerHandshake?) {
-        server.log("WSサーバに接続しました。")
+        plugin.server.log("WSサーバに接続しました。")
         val guestId = "pc-gp-10ab39f4-f397-4c24-8070-667c729dc531"
         val time = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(Date())
         val userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36"
@@ -46,7 +52,7 @@ class PluginWebSocketClient(private val server: Server, private val roomId: Int,
     }
 
     override fun onClose(code: Int, reason: String?, remote: Boolean) {
-        server.log("WSサーバから切断しました。reason:${reason}")
+        plugin.server.log("WSサーバから切断しました。reason:${reason}")
     }
 
     override fun onMessage(message: String?) {
@@ -55,20 +61,34 @@ class PluginWebSocketClient(private val server: Server, private val roomId: Int,
                 .add(KotlinJsonAdapterFactory())
                 .build().adapter(ReceiveParams::class.java)
         val params = adapter.fromJson(message) ?: return
+        val config = plugin.preference
         when (params.cmd) {
-            "onChat" -> server.broadcastMessage("${ChatColor.AQUA}[配信コメント] ${params.userName} > ${params.msg}")
+            "onChat" -> {
+                val enable = config?.getComments() ?: false
+                if (enable) {
+                    plugin.server.broadcastMessage("${ChatColor.AQUA}[配信コメント] ${params.userName} > ${params.msg}")
+                }
+            }
             "onGift" -> {
                 val gift = gifts.firstOrNull { it.giftId == params.giftId }
                 if (gift != null) {
-                    server.broadcastMessage("${ChatColor.LIGHT_PURPLE}${ChatColor.BOLD}[配信ギフト] ${params.userName} から ${gift.name}（${gift.price}） を ${params.count}個 もらったよ")
-                } else {
-                    server.broadcastMessage("${ChatColor.LIGHT_PURPLE}${ChatColor.BOLD}[配信ギフト] ${params.userName} から ${params.giftId} を ${params.count}個 もらったよ")
+                    if (config?.getGifts() == true) {
+                        plugin.server.broadcastMessage("${ChatColor.LIGHT_PURPLE}${ChatColor.BOLD}[配信ギフト] ${params.userName} から ${gift.name}（${gift.price}） を ${params.count}個 もらったよ")
+                    }
+                    if (config?.getGiftItems() == true) {
+                        object : BukkitRunnable() {
+                            override fun run() {
+                                val userName = params.userName ?: "名無し"
+                                GiftItem(userName, gift.price).give(plugin.server)
+                            }
+                        }.runTaskLater(plugin, 1)
+                    }
                 }
             }
         }
     }
 
     override fun onError(ex: Exception?) {
-        server.log("エラーが発生しました。 $ex")
+        plugin.server.log("エラーが発生しました。 $ex")
     }
 }

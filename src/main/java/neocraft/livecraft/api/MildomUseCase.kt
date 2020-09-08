@@ -14,7 +14,7 @@ class MildomUseCase(
         GlobalScope.launch {
             try {
                 val gifts = MildomClient().getGifts()
-                plugin.client = PluginWebSocketClient(plugin.server, roomId, gifts)
+                plugin.client = PluginWebSocketClient(plugin, roomId, gifts)
                 plugin.client?.connect()
                 plugin.server.broadcast("Success", Server.BROADCAST_CHANNEL_ADMINISTRATIVE)
             } catch (e: HttpException) {
